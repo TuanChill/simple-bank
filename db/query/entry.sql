@@ -1,4 +1,4 @@
--- name: CreateEntry :execresult
+-- name: CreateEntry :one
 INSERT INTO entries (
   account_id,
   amount
@@ -11,9 +11,12 @@ RETURNING *;
 SELECT * FROM entries
 WHERE id = $1 LIMIT 1;
 
--- name: GetEntryByAccountId :one
+-- name: ListEntriesByAccountId :many
 SELECT * FROM entries
-WHERE account_id = $1 LIMIT 1;
+WHERE account_id = $1
+ORDER BY id 
+LIMIT $2
+OFFSET $3;
 
 -- name: ListEntries :many
 SELECT * FROM entries
@@ -25,7 +28,7 @@ OFFSET $2; -- skip many rows
 DELETE FROM entries
 WHERE id = $1;
 
--- name: UpdateEntry :exec
+-- name: UpdateEntry :one
 UPDATE entries
 SET amount = $1 
 WHERE id = $2

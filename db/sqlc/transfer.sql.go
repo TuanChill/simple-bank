@@ -7,10 +7,9 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
-const createTransfer = `-- name: CreateTransfer :execresult
+const createTransfer = `-- name: CreateTransfer :one
 INSERT INTO transfers (
   to_account_id,
   from_account_id,
@@ -27,8 +26,17 @@ type CreateTransferParams struct {
 	Amount        int64
 }
 
-func (q *Queries) CreateTransfer(ctx context.Context, arg CreateTransferParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, createTransfer, arg.ToAccountID, arg.FromAccountID, arg.Amount)
+func (q *Queries) CreateTransfer(ctx context.Context, arg CreateTransferParams) (Transfer, error) {
+	row := q.db.QueryRowContext(ctx, createTransfer, arg.ToAccountID, arg.FromAccountID, arg.Amount)
+	var i Transfer
+	err := row.Scan(
+		&i.ID,
+		&i.ToAccountID,
+		&i.FromAccountID,
+		&i.Amount,
+		&i.CreateAt,
+	)
+	return i, err
 }
 
 const deleteTransfer = `-- name: DeleteTransfer :exec
@@ -43,49 +51,6 @@ func (q *Queries) DeleteTransfer(ctx context.Context, id int64) error {
 	return err
 }
 
-const getTransferByAccountsId = `-- name: GetTransferByAccountsId :one
-SELECT id, to_account_id, from_account_id, amount, create_at FROM transfers
-WHERE from_account_id = $1 
-AND to_account_id = $2
-LIMIT 1
-`
-
-type GetTransferByAccountsIdParams struct {
-	FromAccountID int64
-	ToAccountID   int64
-}
-
-func (q *Queries) GetTransferByAccountsId(ctx context.Context, arg GetTransferByAccountsIdParams) (Transfer, error) {
-	row := q.db.QueryRowContext(ctx, getTransferByAccountsId, arg.FromAccountID, arg.ToAccountID)
-	var i Transfer
-	err := row.Scan(
-		&i.ID,
-		&i.ToAccountID,
-		&i.FromAccountID,
-		&i.Amount,
-		&i.CreateAt,
-	)
-	return i, err
-}
-
-const getTransferByFromAccountId = `-- name: GetTransferByFromAccountId :one
-SELECT id, to_account_id, from_account_id, amount, create_at FROM transfers
-WHERE from_account_id = $1 LIMIT 1
-`
-
-func (q *Queries) GetTransferByFromAccountId(ctx context.Context, fromAccountID int64) (Transfer, error) {
-	row := q.db.QueryRowContext(ctx, getTransferByFromAccountId, fromAccountID)
-	var i Transfer
-	err := row.Scan(
-		&i.ID,
-		&i.ToAccountID,
-		&i.FromAccountID,
-		&i.Amount,
-		&i.CreateAt,
-	)
-	return i, err
-}
-
 const getTransferById = `-- name: GetTransferById :one
 SELECT id, to_account_id, from_account_id, amount, create_at FROM transfers
 WHERE id = $1 LIMIT 1
@@ -93,24 +58,6 @@ WHERE id = $1 LIMIT 1
 
 func (q *Queries) GetTransferById(ctx context.Context, id int64) (Transfer, error) {
 	row := q.db.QueryRowContext(ctx, getTransferById, id)
-	var i Transfer
-	err := row.Scan(
-		&i.ID,
-		&i.ToAccountID,
-		&i.FromAccountID,
-		&i.Amount,
-		&i.CreateAt,
-	)
-	return i, err
-}
-
-const getTransferByToAccountId = `-- name: GetTransferByToAccountId :one
-SELECT id, to_account_id, from_account_id, amount, create_at FROM transfers
-WHERE to_account_id = $1 LIMIT 1
-`
-
-func (q *Queries) GetTransferByToAccountId(ctx context.Context, toAccountID int64) (Transfer, error) {
-	row := q.db.QueryRowContext(ctx, getTransferByToAccountId, toAccountID)
 	var i Transfer
 	err := row.Scan(
 		&i.ID,
@@ -163,7 +110,7 @@ func (q *Queries) ListTransfers(ctx context.Context, arg ListTransfersParams) ([
 	return items, nil
 }
 
-const updateTransfer = `-- name: UpdateTransfer :exec
+const updateTransfer = `-- name: UpdateTransfer :one
 UPDATE transfers
 SET amount = $1 
 WHERE id = $2
@@ -175,7 +122,15 @@ type UpdateTransferParams struct {
 	ID     int64
 }
 
-func (q *Queries) UpdateTransfer(ctx context.Context, arg UpdateTransferParams) error {
-	_, err := q.db.ExecContext(ctx, updateTransfer, arg.Amount, arg.ID)
-	return err
+func (q *Queries) UpdateTransfer(ctx context.Context, arg UpdateTransferParams) (Transfer, error) {
+	row := q.db.QueryRowContext(ctx, updateTransfer, arg.Amount, arg.ID)
+	var i Transfer
+	err := row.Scan(
+		&i.ID,
+		&i.ToAccountID,
+		&i.FromAccountID,
+		&i.Amount,
+		&i.CreateAt,
+	)
+	return i, err
 }

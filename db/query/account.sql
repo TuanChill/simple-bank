@@ -1,4 +1,4 @@
--- name: CreateAccount :execresult
+-- name: CreateAccount :one
 INSERT INTO accounts (
   owner,
   balance,
@@ -22,7 +22,7 @@ OFFSET $2; -- skip many rows
 DELETE FROM accounts
 WHERE id = $1;
 
--- name: UpdateAccount :exec
+-- name: UpdateAccount :one
 UPDATE accounts 
 SET balance = $1 
 WHERE id = $2

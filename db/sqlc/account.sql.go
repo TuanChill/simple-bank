@@ -7,10 +7,9 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
-const createAccount = `-- name: CreateAccount :execresult
+const createAccount = `-- name: CreateAccount :one
 INSERT INTO accounts (
   owner,
   balance,
@@ -27,8 +26,17 @@ type CreateAccountParams struct {
 	Currency string
 }
 
-func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, createAccount, arg.Owner, arg.Balance, arg.Currency)
+func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error) {
+	row := q.db.QueryRowContext(ctx, createAccount, arg.Owner, arg.Balance, arg.Currency)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.Balance,
+		&i.Currency,
+		&i.CreateAt,
+	)
+	return i, err
 }
 
 const deleteAccount = `-- name: DeleteAccount :exec
@@ -102,7 +110,7 @@ func (q *Queries) ListAccounts(ctx context.Context, arg ListAccountsParams) ([]A
 	return items, nil
 }
 
-const updateAccount = `-- name: UpdateAccount :exec
+const updateAccount = `-- name: UpdateAccount :one
 UPDATE accounts 
 SET balance = $1 
 WHERE id = $2
@@ -114,7 +122,15 @@ type UpdateAccountParams struct {
 	ID      int64
 }
 
-func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) error {
-	_, err := q.db.ExecContext(ctx, updateAccount, arg.Balance, arg.ID)
-	return err
+func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) (Account, error) {
+	row := q.db.QueryRowContext(ctx, updateAccount, arg.Balance, arg.ID)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.Balance,
+		&i.Currency,
+		&i.CreateAt,
+	)
+	return i, err
 }
